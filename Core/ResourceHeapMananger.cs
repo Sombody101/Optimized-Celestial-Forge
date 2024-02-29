@@ -6,8 +6,6 @@ namespace GameEngine.Core;
 
 public static class ResourceHeap
 {
-
-    #region to delete
     private static List<uint> texturesToDelete = new();
 
     public enum DeleteTarget { Texture }
@@ -21,28 +19,26 @@ public static class ResourceHeap
             default: return;
         }
     }
-    #endregion
 
-    #region shader programs
     private static List<GlShaderProgram> _GlShaderPrograms = new();
+
     public static GlShaderProgram? GetShaderProgramReference(FileReference vs, FileReference fs, FileReference? gs)
     {
         foreach (var i in _GlShaderPrograms)
-        if (i.vertexShader == vs && i.fragmentShader == fs && i.geometryShader == gs)
-            return i;
-        
+            if (i.vertexShader == vs && i.fragmentShader == fs && i.geometryShader == gs)
+                return i;
+
         return null;
     }
+
     public static void AddShaderProgramReference(GlShaderProgram program)
-    {
-        _GlShaderPrograms.Add(program);
-    }
+        => _GlShaderPrograms.Add(program);
+
     public static void RemoveShaderProgramReference(GlShaderProgram program)
     {
         _GlShaderPrograms.Remove(program);
         program.Dispose();
     }
-    #endregion
 
     public static void Collect()
     {
@@ -50,13 +46,11 @@ public static class ResourceHeap
 
         if (texturesToDelete.Count > 0)
         {
-            gl.DeleteTextures((uint) texturesToDelete.Count, texturesToDelete.ToArray());
+            gl.DeleteTextures((uint)texturesToDelete.Count, texturesToDelete.ToArray());
             texturesToDelete.Clear();
         }
     }
-    public static void CallProcess()
-    {
-        Collect();
-    }
 
+    public static void CallProcess()
+        => Collect();
 }

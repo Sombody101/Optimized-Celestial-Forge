@@ -1,37 +1,32 @@
-using System.Runtime.InteropServices;
 using GameEngine.Util;
 using GameEngine.Util.Resources;
 using Silk.NET.OpenGL;
+using System.Runtime.InteropServices;
 
 namespace GameEngine.Core;
 
 public static class DrawService
 {
-    public enum BufferUsage { Static, Dynamic, Stream };
+    private static readonly Dictionary<uint, ResourceDrawData> ResourceData = new();
 
-    private static Dictionary<uint, ResourceDrawData> ResourceData = new();
+    public enum BufferUsage { Static, Dynamic, Stream };
 
     #region Gl Binded data
     public static int GlBinded_ShaderProgram = -1;
     #endregion
 
     public static void CreateCanvasItem(uint NID)
-    {
-        ResourceData.Add(NID, new ResourceDrawData());
-    }
+        => ResourceData.Add(NID, new ResourceDrawData());
+
     public static void DeleteCanvasItem(uint NID)
-    {
-        if (ResourceData.ContainsKey(NID))
-            ResourceData.Remove(NID);
-    }
+        => ResourceData.Remove(NID);
 
     public static uint CreateBuffer(uint NID, string bufferName)
-    {
-        return ResourceData[NID].CreateBuffer(bufferName);
-    }
+        => ResourceData[NID].CreateBuffer(bufferName);
 
     #region SetBufferData Methods
-    public static unsafe void SetBufferData(uint NID, string buffer, float[] data, int size, BufferUsage usage=BufferUsage.Static)
+
+    public static unsafe void SetBufferData<T>(uint NID, string buffer, T[] data, int size, BufferUsage usage = BufferUsage.Static) where T : unmanaged
     {
         var gl = Engine.gl;
 
@@ -40,79 +35,22 @@ public static class DrawService
         gl.BindVertexArray(ResourceData[NID].VertexArray);
         gl.BindBuffer(BufferTargetARB.ArrayBuffer, vertexData.bufferId);
 
-        BufferUsageARB currentUsage = 
-            usage == BufferUsage.Static? BufferUsageARB.StaticDraw :
-            usage == BufferUsage.Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StreamDraw;
-        
-        fixed(float* buf = data)
-        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(float)), buf, currentUsage);
+        BufferUsageARB currentUsage =
+            usage == BufferUsage.Static 
+                ? BufferUsageARB.StaticDraw 
+                : usage == BufferUsage.Dynamic 
+                    ? BufferUsageARB.DynamicDraw 
+                    : BufferUsageARB.StreamDraw;
+
+        fixed (T* buf = data)
+            gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(T)), buf, currentUsage);
 
         vertexData.size = size;
-        vertexData.type = typeof(float);
+        vertexData.type = typeof(T);
         ResourceData[NID].VertexBuffers[buffer] = vertexData;
     }
-    public static unsafe void SetBufferData(uint NID, string buffer, double[] data, int size, BufferUsage usage=BufferUsage.Static)
-    {
-        var gl = Engine.gl;
 
-        VertexData vertexData = ResourceData[NID].VertexBuffers[buffer];
-
-        gl.BindVertexArray(ResourceData[NID].VertexArray);
-        gl.BindBuffer(BufferTargetARB.ArrayBuffer, vertexData.bufferId);
-
-        BufferUsageARB currentUsage = 
-            usage == BufferUsage.Static? BufferUsageARB.StaticDraw :
-            usage == BufferUsage.Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StreamDraw;
-        
-        fixed(double* buf = data)
-        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(double)), buf, currentUsage);
-
-        vertexData.size = size;
-        vertexData.type = typeof(double);
-        ResourceData[NID].VertexBuffers[buffer] = vertexData;
-    }
-    public static unsafe void SetBufferData(uint NID, string buffer, byte[] data, int size, BufferUsage usage=BufferUsage.Static)
-    {
-        var gl = Engine.gl;
-
-        VertexData vertexData = ResourceData[NID].VertexBuffers[buffer];
-
-        gl.BindVertexArray(ResourceData[NID].VertexArray);
-        gl.BindBuffer(BufferTargetARB.ArrayBuffer, vertexData.bufferId);
-
-        BufferUsageARB currentUsage = 
-            usage == BufferUsage.Static? BufferUsageARB.StaticDraw :
-            usage == BufferUsage.Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StreamDraw;
-        
-        fixed(byte* buf = data)
-        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(byte)), buf, currentUsage);
-
-        vertexData.size = size;
-        vertexData.type = typeof(byte);
-        ResourceData[NID].VertexBuffers[buffer] = vertexData;
-    }
-    public static unsafe void SetBufferData(uint NID, string buffer, int[] data, int size, BufferUsage usage=BufferUsage.Static)
-    {
-        var gl = Engine.gl;
-
-        VertexData vertexData = ResourceData[NID].VertexBuffers[buffer];
-
-        gl.BindVertexArray(ResourceData[NID].VertexArray);
-        gl.BindBuffer(BufferTargetARB.ArrayBuffer, vertexData.bufferId);
-
-        BufferUsageARB currentUsage = 
-            usage == BufferUsage.Static? BufferUsageARB.StaticDraw :
-            usage == BufferUsage.Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StreamDraw;
-        
-        fixed(int* buf = data)
-        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(int)), buf, currentUsage);
-
-        vertexData.size = size;
-        vertexData.type = typeof(int);
-        ResourceData[NID].VertexBuffers[buffer] = vertexData;
-    }
-    
-    public static unsafe void SetBufferData(uint NID, uint id, float[] data, int size, BufferUsage usage=BufferUsage.Static)
+    public static unsafe void SetBufferData<T>(uint NID, uint id, T[] data, int size, BufferUsage usage = BufferUsage.Static) where T : unmanaged
     {
         var gl = Engine.gl;
 
@@ -122,80 +60,21 @@ public static class DrawService
         gl.BindVertexArray(ResourceData[NID].VertexArray);
         gl.BindBuffer(BufferTargetARB.ArrayBuffer, vertexData.bufferId);
 
-        BufferUsageARB currentUsage = 
-            usage == BufferUsage.Static? BufferUsageARB.StaticDraw :
-            usage == BufferUsage.Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StreamDraw;
-        
-        fixed(float* buf = data)
-        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(float)), buf, currentUsage);
+        BufferUsageARB currentUsage =
+            usage == BufferUsage.Static
+                ? BufferUsageARB.StaticDraw
+                : usage == BufferUsage.Dynamic
+                    ? BufferUsageARB.DynamicDraw
+                    : BufferUsageARB.StreamDraw;
+
+        fixed (T* buf = data)
+            gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(T)), buf, currentUsage);
 
         vertexData.size = size;
-        vertexData.type = typeof(float);
+        vertexData.type = typeof(T);
         ResourceData[NID].VertexBuffers[a.Key] = vertexData;
     }
-    public static unsafe void SetBufferData(uint NID, uint id, double[] data, int size, BufferUsage usage=BufferUsage.Static)
-    {
-        var gl = Engine.gl;
 
-        var a = ResourceData[NID].VertexBuffers.ToArray()[id];
-        VertexData vertexData = a.Value;
-
-        gl.BindVertexArray(ResourceData[NID].VertexArray);
-        gl.BindBuffer(BufferTargetARB.ArrayBuffer, vertexData.bufferId);
-
-        BufferUsageARB currentUsage = 
-            usage == BufferUsage.Static? BufferUsageARB.StaticDraw :
-            usage == BufferUsage.Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StreamDraw;
-        
-        fixed(double* buf = data)
-        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(double)), buf, currentUsage);
-
-        vertexData.size = size;
-        vertexData.type = typeof(double);
-        ResourceData[NID].VertexBuffers[a.Key] = vertexData;
-    }
-    public static unsafe void SetBufferData(uint NID, uint id, byte[] data, int size, BufferUsage usage=BufferUsage.Static)
-    {
-        var gl = Engine.gl;
-
-        var a = ResourceData[NID].VertexBuffers.ToArray()[id];
-        VertexData vertexData = a.Value;
-
-        gl.BindVertexArray(ResourceData[NID].VertexArray);
-        gl.BindBuffer(BufferTargetARB.ArrayBuffer, vertexData.bufferId);
-
-        BufferUsageARB currentUsage = 
-            usage == BufferUsage.Static? BufferUsageARB.StaticDraw :
-            usage == BufferUsage.Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StreamDraw;
-        
-        fixed(byte* buf = data)
-        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(byte)), buf, currentUsage);
-
-        vertexData.size = size;
-        vertexData.type = typeof(byte);
-        ResourceData[NID].VertexBuffers[a.Key] = vertexData;
-    }
-    public static unsafe void SetBufferData(uint NID, uint id, int[] data, int size, BufferUsage usage=BufferUsage.Static)
-    {
-        var gl = Engine.gl;
-
-        var a = ResourceData[NID].VertexBuffers.ToArray()[id];
-        VertexData vertexData = a.Value;
-
-        gl.BindVertexArray(ResourceData[NID].VertexArray);
-        gl.BindBuffer(BufferTargetARB.ArrayBuffer, vertexData.bufferId);
-
-        BufferUsageARB currentUsage = 
-            usage == BufferUsage.Static? BufferUsageARB.StaticDraw :
-            usage == BufferUsage.Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StreamDraw;
-        
-        fixed(int* buf = data)
-        gl.BufferData(BufferTargetARB.ArrayBuffer, (nuint)(data.Length * sizeof(int)), buf, currentUsage);
-
-        vertexData.size = size;
-        vertexData.type = typeof(int);
-        ResourceData[NID].VertexBuffers[a.Key] = vertexData;
-    }
     #endregion
 
     #region Operations with instances
@@ -216,7 +95,7 @@ public static class DrawService
         vertexData.divisions = divisor;
         ResourceData[NID].VertexBuffers[a.Key] = vertexData;
     }
-    
+
     public static void EnableInstancing(uint NID, uint instanceCount)
     {
         var gl = Engine.gl;
@@ -234,7 +113,7 @@ public static class DrawService
     }
     #endregion
 
-    public static unsafe void SetElementBufferData(uint NID, uint[] data, BufferUsage usage=BufferUsage.Static)
+    public static unsafe void SetElementBufferData(uint NID, uint[] data, BufferUsage usage = BufferUsage.Static)
     {
         var gl = Engine.gl;
 
@@ -243,20 +122,22 @@ public static class DrawService
         gl.BindVertexArray(ResourceData[NID].VertexArray);
         gl.BindBuffer(BufferTargetARB.ElementArrayBuffer, bufferId);
 
-        BufferUsageARB currentUsage = 
-            usage == BufferUsage.Static? BufferUsageARB.StaticDraw :
-            usage == BufferUsage.Dynamic ? BufferUsageARB.DynamicDraw : BufferUsageARB.StreamDraw;
-        
-        fixed(uint* buf = data)
-        gl.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)(data.Length * sizeof(uint)), buf, currentUsage);
+        BufferUsageARB currentUsage =
+            usage == BufferUsage.Static 
+                ? BufferUsageARB.StaticDraw 
+                : usage == BufferUsage.Dynamic 
+                    ? BufferUsageARB.DynamicDraw 
+                    : BufferUsageARB.StreamDraw;
+
+        fixed (uint* buf = data)
+            gl.BufferData(BufferTargetARB.ElementArrayBuffer, (nuint)(data.Length * sizeof(uint)), buf, currentUsage);
 
         var a = ResourceData[NID];
-        a.elementsLength = (uint) data.Length;
+        a.elementsLength = (uint)data.Length;
         ResourceData[NID] = a;
     }
-    
-    
-    public static unsafe void EnableAtributes(uint NID, Material material)
+
+    public static unsafe void EnableAttributes(uint NID, Material material)
     {
         var gl = Engine.gl;
         var res = ResourceData[NID];
@@ -267,7 +148,7 @@ public static class DrawService
             int iloc = material.GetALocation(i.Key);
             if (iloc < 0) continue;
 
-            uint loc = (uint) iloc;
+            uint loc = (uint)iloc;
             var ts = Marshal.SizeOf(i.Value.type);
 
             #region get correct type
@@ -283,15 +164,17 @@ public static class DrawService
             if (i.Value.size < 16)
             {
                 gl.EnableVertexAttribArray(loc);
-                gl.VertexAttribPointer(loc, i.Value.size, type, false, (uint)(i.Value.size*ts), (void*) 0);
+                gl.VertexAttribPointer(loc, i.Value.size, type, false, (uint)(i.Value.size * ts), (void*)0);
                 gl.VertexAttribDivisor(loc, i.Value.divisions);
             }
-            else for (uint j = 0; j < 4; j++)
-            {
-                gl.EnableVertexAttribArray(loc+j);
-                gl.VertexAttribPointer(loc+j, 4, type, false, (uint)(16*ts), (void*) (j*4*ts));
-                gl.VertexAttribDivisor(loc+j, i.Value.divisions);
-            }
+            else
+                for (uint j = 0; j < 4; j++)
+                {
+                    var nloc = loc + j;
+                    gl.EnableVertexAttribArray(nloc);
+                    gl.VertexAttribPointer(nloc, 4, type, false, (uint)(16 * ts), (void*)(j * 4 * ts));
+                    gl.VertexAttribDivisor(nloc, i.Value.divisions);
+                }
         }
     }
 
@@ -301,11 +184,10 @@ public static class DrawService
         Engine.gl.BindVertexArray(res.VertexArray);
 
         if (!res.useInstancing)
-            Engine.gl.DrawElements(PrimitiveType.Triangles, res.elementsLength, DrawElementsType.UnsignedInt, (void*) 0);
+            Engine.gl.DrawElements(PrimitiveType.Triangles, res.elementsLength, DrawElementsType.UnsignedInt, (void*)0);
         else
-            Engine.gl.DrawElementsInstanced(PrimitiveType.Triangles, res.elementsLength, DrawElementsType.UnsignedInt, (void*) 0, res.instanceCount);
+            Engine.gl.DrawElementsInstanced(PrimitiveType.Triangles, res.elementsLength, DrawElementsType.UnsignedInt, (void*)0, res.instanceCount);
     }
-
 }
 
 struct ResourceDrawData
@@ -319,7 +201,6 @@ struct ResourceDrawData
 
     // configs
     public bool useInstancing = false;
-
 
     public ResourceDrawData()
     {
@@ -340,6 +221,7 @@ struct ResourceDrawData
         return (uint)(VertexBuffers.Count - 1);
     }
 }
+
 struct VertexData
 {
     public uint bufferId = 0;
@@ -347,5 +229,5 @@ struct VertexData
     public Type type = typeof(float);
     public uint divisions = 0;
 
-    public VertexData() {}
+    public VertexData() { }
 }

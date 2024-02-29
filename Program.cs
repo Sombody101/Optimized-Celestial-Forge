@@ -1,12 +1,8 @@
 ﻿using GameEngine.Core;
 
 namespace GameEngine;
-internal class Program
+internal static class Program
 {
-
-    static void Main(string[] args)
-    {
-        var engine = new Engine();
-    }
-    
+    static void Main()
+        => Engine.StartEngine();
 }

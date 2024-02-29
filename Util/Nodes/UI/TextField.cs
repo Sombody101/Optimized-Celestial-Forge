@@ -88,7 +88,7 @@ public class TextField : NodeUI, ICanvasItem
 
         Font.FontUpdated += OnFontUpdate;
 
-        DrawService.EnableAtributes(NID, material);
+        DrawService.EnableAttributes(NID, material);
 
         tex.Filter = false;
 

@@ -48,10 +48,10 @@ public class Font : Resource
         _path = path;
         _size = size;
         glyphLoader = new("../../../" + path, size);
-        descender = glyphLoader.descender;
-        fontheight = glyphLoader.fontheight;
-        lineheight = glyphLoader.lineheight;
-        ascender = glyphLoader.ascender;
+        descender = glyphLoader.Descender;
+        fontheight = glyphLoader.FontHeight;
+        lineheight = glyphLoader.LineHeight;
+        ascender = glyphLoader.Ascender;
 
         FontUpdated?.Invoke();
     }

@@ -1,14 +1,16 @@
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 using FreeTypeSharp.Native;
 using GameEngine.Util.Values;
 using StbRectPackSharp;
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace GameEngine.Text;
 
 public struct Character
 {
-    public Character() {}
+    public Character()
+    {
+    }
 
     public byte[] Texture { get; set; } = Array.Empty<byte>();
 
@@ -26,131 +28,134 @@ public struct Character
     public char Char { get; set; }
 }
 
+// What even is this?
 public class FreeType_TtfGlyphLoader
 {
+    private readonly IntPtr faceptr;
+    private readonly int yoffset;
+    private readonly Dictionary<char, Character> buffer = new();
 
     private FT_FaceRec face;
-    private IntPtr faceptr;
-
     private Character baseCharacter;
-    private int yoffset;
-
-    public int descender;
-    public int fontheight;
-    public int lineheight;
-    public int ascender;
-    
-    public uint Size {get; private set;}
-
-    private Dictionary <char, Character> buffer = new Dictionary <char, Character>();
-
     private int _textureSize = 256;
-    private byte[] _bufferTexture = new byte[256*256];
+    private byte[] _bufferTexture = new byte[256 * 256];
     private Packer _packer = new(256, 256);
 
-    public byte[] AtlasData { get { return _bufferTexture; } }
-    public Vector2<int> AtlasSize { get { return new(_textureSize, _textureSize); } }
+    public int Descender { get; set; }
+    public int FontHeight { get; set; }
+    public int LineHeight { get; set; }
+    public int Ascender { get; set; }
+
+    public uint Size { get; private set; }
+    public byte[] AtlasData { get => _bufferTexture; }
+    public Vector2<int> AtlasSize { get => new(_textureSize, _textureSize); }
 
     public FreeType_TtfGlyphLoader(string font, uint size)
     {
-        if (!File.Exists(font)) throw new FileNotFoundException("Failed to load font file:" + font);
-        
+        if (!File.Exists(font)) 
+            throw new FileNotFoundException("Failed to load font file:" + font);
+
         Size = size;
 
-        int r1 = (int) FT.FT_Init_FreeType(out IntPtr libptr);
-        if (r1!=0) throw new Exception("Failed to load FreeType library.");
+        int r1 = (int)FT.FT_Init_FreeType(out IntPtr libptr);
+        if (r1 != 0) 
+            throw new Exception("Failed to load FreeType library.");
 
-        int r2 = (int) FT.FT_New_Face(libptr, font, 0, out faceptr);
-        if (r2 != 0) throw new Exception("Failed to create font face.");
+        int r2 = (int)FT.FT_New_Face(libptr, font, 0, out faceptr);
+        if (r2 != 0) 
+            throw new Exception("Failed to create font face.");
 
         face = Marshal.PtrToStructure<FT_FaceRec>(faceptr);
         FT.FT_Set_Char_Size(faceptr, (int)Size << 6, (int)Size << 6, 96, 96);
 
-        ascender = face.ascender >> 6;
-        descender = face.descender >> 6;
-        fontheight = ((face.height >> 6) - descender + ascender) / 4;
-        yoffset = (int) (size - ascender);
-        lineheight = fontheight + yoffset - (int)(descender*1.8f);
+        Ascender = face.ascender >> 6;
+        Descender = face.descender >> 6;
+        FontHeight = ((face.height >> 6) - Descender + Ascender) / 4;
+        yoffset = (int)(size - Ascender);
+        LineHeight = FontHeight + yoffset - (int)(Descender * 1.8f);
         baseCharacter = CreateChar('a');
-
     }
 
     private unsafe FT_GlyphSlotRec GetCharBitmap(uint c)
     {
         uint index = FT.FT_Get_Char_Index(faceptr, c);
 
-        int r1 = (int) FT.FT_Load_Glyph(faceptr, index, FT.FT_LOAD_TARGET_NORMAL);
+        int r1 = (int)FT.FT_Load_Glyph(faceptr, index, FT.FT_LOAD_TARGET_NORMAL);
 
-        FT_GlyphSlotRec glyph_rec = Marshal.PtrToStructure<FT_GlyphSlotRec>((nint) face.glyph);
+        FT_GlyphSlotRec glyph_rec = Marshal.PtrToStructure<FT_GlyphSlotRec>((nint)face.glyph);
 
-        int r2 = (int) FT.FT_Render_Glyph((IntPtr)Unsafe.AsPointer(ref glyph_rec), FT_Render_Mode.FT_RENDER_MODE_NORMAL);
+        int r2 = (int)FT.FT_Render_Glyph((IntPtr)Unsafe.AsPointer(ref glyph_rec), FT_Render_Mode.FT_RENDER_MODE_NORMAL);
 
         return glyph_rec;
     }
 
     public Character CreateChar(char c)
     {
-        Character ch = new();
+        Character chr = new();
 
         try
         {
-            if (buffer.ContainsKey(c))
-                return buffer[c];
-            
-            if (c == '\r' || c == '\n')
+            if (buffer.TryGetValue(c, out Character value))
+                return value;
+
+            if (c is '\r' or '\n')
             {
-                ch.Char = c;
-                buffer.Add(c, ch);
+                chr.Char = c;
+                buffer.Add(c, chr);
             }
 
-            if (c != ' ' && c != '\t')
+            if (c is not ' ' or '\t')
             {
                 var tt = GetCharBitmap(Convert.ToUInt32(c));
-                var charoffsety = ascender - tt.bitmap_top;
+                var charoffsety = Ascender - tt.bitmap_top;
                 var charoffsetx = tt.bitmap_left;
 
                 byte[] bmp = new byte[tt.bitmap.rows * tt.bitmap.width];
                 Marshal.Copy(tt.bitmap.buffer, bmp, 0, bmp.Length);
 
-                ch.Texture = bmp;
-                ch.Advance = tt.advance.x / 64;
-                ch.OffsetY = charoffsety + yoffset;
-                ch.OffsetX = charoffsetx;
-                ch.SizeX = tt.bitmap.width;
-                ch.SizeY = tt.bitmap.rows;
-                ch.TexSize = new(tt.bitmap.width, tt.bitmap.rows);
-                ch.TexPosition = AddCharacterToTexture((int) tt.bitmap.width, (int) tt.bitmap.rows, bmp);
-                ch.Char    = c;
+                chr.Texture = bmp;
+                chr.Advance = tt.advance.x / 64;
+                chr.OffsetY = charoffsety + yoffset;
+                chr.OffsetX = charoffsetx;
+                chr.SizeX = tt.bitmap.width;
+                chr.SizeY = tt.bitmap.rows;
+                chr.TexSize = new(tt.bitmap.width, tt.bitmap.rows);
+                chr.TexPosition = AddCharacterToTexture((int)tt.bitmap.width, (int)tt.bitmap.rows, bmp);
+                chr.Char = c;
 
-                buffer.Add(c, ch);
+                buffer.Add(c, chr);
             }
             else
             {
-                ch.Advance = c != '\t' ? baseCharacter.Advance : baseCharacter.Advance * 4;
-                ch.Char = c;
-                buffer.Add(c, ch);
+                chr.Advance = c != '\t' 
+                    ? baseCharacter.Advance 
+                    : baseCharacter.Advance * 4;
+                
+                chr.Char = c;
+                buffer.Add(c, chr);
             }
         }
         catch (Exception)
         {
             if (!buffer.ContainsKey(c))
-                buffer.Add(c, ch);
+                buffer.Add(c, chr);
         }
 
-        return ch;
+        return chr;
     }
 
-    public Character[] CreateStringTexture(string s)
+    public Character[] CreateStringTexture(string str)
     {
         // check if all characters are inside the buffer
         // if not, iterate to create JUST the characters that are not in the buffer
-        var notInBuffer = s.Distinct().Where(e => !buffer.ContainsKey(e)).ToArray();
-        foreach (var i in notInBuffer) CreateChar(i);
+        var notInBuffer = str.Distinct().Where(e => !buffer.ContainsKey(e));
+        foreach (var chr in notInBuffer) 
+            CreateChar(chr);
 
-        var temp = new Character[s.Length];
-        for (int i = 0; i < s.Length; i++)
-            temp[i] = CreateChar(s[i]);
-        
+        var temp = new Character[str.Length];
+        for (int i = 0; i < str.Length; i++)
+            temp[i] = CreateChar(str[i]);
+
         return temp;
     }
 
@@ -158,27 +163,31 @@ public class FreeType_TtfGlyphLoader
     {
         bool canContinue;
         uint iteration = 0;
+        
         do
         {
-            if (iteration > 0 ) ResizeTexture();
+            if (iteration > 0) 
+                ResizeTexture();
 
-            var res = _packer.PackRect(width, height, null);
-            
-            if (res != null)
+            var pRect = _packer.PackRect(width, height, null);
+
+            if (pRect != null)
             {
                 // Add character to the atlas
                 for (int y = 0; y < height; y++)
-                for (int x = 0; x < width; x++)
+                {
+                    for (int x = 0; x < width; x++)
+                    {
+                        _bufferTexture[((pRect.Y + y) * _textureSize) + pRect.X + x] = charBitmap[(y * width) + x];
+                    }
+                }
 
-                    _bufferTexture[((res.Y+y)*_textureSize) + res.X+x] = charBitmap[(y*width)+x];
-                
-
-                return new Vector2<uint>((uint) res.X, (uint) res.Y);
+                return new Vector2<uint>((uint)pRect.X, (uint)pRect.Y);
             }
-            else canContinue = false;
-            
+            else 
+                canContinue = false;
 
-            iteration++;            
+            iteration++;
         } while (!canContinue);
 
         return new();
@@ -190,13 +199,11 @@ public class FreeType_TtfGlyphLoader
         _packer = new Packer(_textureSize, _textureSize);
         _bufferTexture = new byte[_textureSize * _textureSize];
 
-        foreach (var i in buffer)
+        foreach (var kvp in buffer)
         {
-            var v = i.Value;
-            v.TexPosition =
-            AddCharacterToTexture((int) v.TexSize.X, (int) v.TexSize.Y, v.Texture); 
-            buffer[i.Key] = v;
+            var v = kvp.Value;
+            v.TexPosition = AddCharacterToTexture((int)v.TexSize.X, (int)v.TexSize.Y, v.Texture);
+            buffer[kvp.Key] = v;
         }
     }
-
 }

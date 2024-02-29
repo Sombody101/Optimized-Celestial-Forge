@@ -6,19 +6,16 @@ namespace GameEngine.Core;
 
 public static class WindowService
 {
-
-    public static IWindow? mainWindow = null;
-    public static List<IWindow> windows = new();
+    public static IWindow? mainWindow { get; set; } = null;
+    public static List<IWindow> windows { get; set; } = new();
 
     private static List<IWindow> _windowsToClose = new();
 
-    public static IWindow CreateNewWindow(Action? onload=null)
-    {
-        return CreateNewWindow(new Vector2<int>(800, 600), "New Window " + windows.Count, onload);
-    }
+    public static IWindow CreateNewWindow(Action? onload = null)
+        => CreateNewWindow(new Vector2<int>(800, 600), "New Window " + windows.Count, onload);
+
     public static IWindow CreateNewWindow(Vector2<int> size, string title, Action? onload=null)
     {
-        
         WindowOptions options = WindowOptions.Default with
         {
             Title = title,
@@ -38,7 +35,8 @@ public static class WindowService
 
         windows.Add(nWin);
 
-        if (onload!=null) nWin.Load += onload;
+        if (onload != null)
+            nWin.Load += onload;
 
         nWin.Initialize();
 
@@ -51,14 +49,14 @@ public static class WindowService
         nWin.ConfigWindow();
 
         return nWin;
-
     }
 
     public static void CloseWindow(IWindow win)
     {
         _windowsToClose.Add(win);
         windows.Remove(win);
-        if (win == mainWindow) mainWindow = null;
+        if (win == mainWindow) 
+            mainWindow = null;
     }
 
     private static void ConfigWindow(this IWindow win)
@@ -76,9 +74,6 @@ public static class WindowService
     public static void CallProcess()
     {
         foreach (var win in _windowsToClose)
-        {
             win.Dispose();
-        }
     }
-
 }

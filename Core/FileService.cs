@@ -1,10 +1,7 @@
-using System;
-
 namespace GameEngine.Core;
 
 public static class FileService
 {
-
     public static string GetFile(string path)
     {
         var gPath = GetGlobalPath(path);
@@ -12,7 +9,7 @@ public static class FileService
         {
             return File.ReadAllText(gPath);
         }
-        catch(Exception e)
+        catch (Exception e)
         {
             throw new ApplicationException("File can't be loaded!", e);
         }
@@ -21,37 +18,32 @@ public static class FileService
     public static FileSystemInfo[] GetDirectory(string path)
     {
         var gPath = GetGlobalPath(path);
-
-        DirectoryInfo info = new DirectoryInfo(gPath);
-        FileSystemInfo[] itens = info.GetFileSystemInfos();
-
-        return itens;
+        DirectoryInfo info = new(gPath);
+        
+        return info.GetFileSystemInfos();
     }
 
     public static string GetProjRelativePath(string path)
     {
         string p = path.Replace("\\", "/");
 
-        if (p.StartsWith(Engine.projectSettings.projectPath))
-            return string.Concat("res://", p.AsSpan(Engine.projectSettings.projectPath.Length));
+        if (p.StartsWith(Engine.projectSettings.ProjectPath))
+            return string.Concat("res://", p.AsSpan(Engine.projectSettings.ProjectPath.Length));
 
         return p;
     }
+
     public static string GetGlobalPath(string path)
     {
         string p = path.Replace("\\", "/");
 
         if (p.StartsWith("res://"))
-            p = Engine.projectSettings.projectPath
-            + p[6..];
-        
-        else if (p.StartsWith("c:/") || p.StartsWith("C:/"))
+            p = Engine.projectSettings.ProjectPath + p[6..];
+        else if (p.ToLower().StartsWith("c:/"))
             return p;
-
         else
-            p ="../../../" + p;
+            p = "../../../" + p;
 
         return p;
     }
-
 }

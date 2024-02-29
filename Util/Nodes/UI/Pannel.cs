@@ -37,7 +37,7 @@ public class Pannel : NodeUI, ICanvasItem
             
         DrawService.SetElementBufferData(NID, i);
 
-        DrawService.EnableAtributes(NID, material);
+        DrawService.EnableAttributes(NID, material);
 
         material.SetUniform("color", _bgColor);
     }

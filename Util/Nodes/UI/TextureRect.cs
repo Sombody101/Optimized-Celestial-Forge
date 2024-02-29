@@ -28,7 +28,7 @@ public class TextureRect : NodeUI, ICanvasItem
             
         DrawService.SetElementBufferData(NID, i);
 
-        DrawService.EnableAtributes(NID, material);
+        DrawService.EnableAttributes(NID, material);
 
     }
 
