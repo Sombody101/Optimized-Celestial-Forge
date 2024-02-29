@@ -1,3 +1,7 @@
+# "Optimized" version
+I change things with the assumption they already work. If something didn't work to begin with, there's a chance it's more
+broken. Read with caution.
+
 # Celestial forge
 
 Celestial forge is a complete 2D Game Engine, until in development.
